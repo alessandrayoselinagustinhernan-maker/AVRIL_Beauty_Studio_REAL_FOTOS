@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Administrar AVRIL</title><link rel="stylesheet" href="admin.css"><script src="site-data.js"></script></head>
+<body>
+<div id="login" class="login card"><div class="brand">AVRIL</div><p class="sub">Panel de administración</p><label>Contraseña</label><input id="password" type="password" placeholder="Contraseña"><br><br><button class="btn" id="loginBtn">ENTRAR</button><p class="small">Contraseña inicial: <b>AVRIL2026</b>. Puedes cambiarla desde este panel.</p></div>
+<div id="app" class="wrap hidden">
+  <div class="top"><div><div class="brand">AVRIL</div><div class="sub">Panel de administración</div></div><div class="row"><a class="btn secondary" href="index.html">VER PÁGINA</a><button class="btn danger" id="logout">SALIR</button></div></div>
+  <div class="notice">Los cambios de texto, servicios y enlaces se guardan en este navegador. Para que se sincronicen entre teléfonos/computadoras y para publicar fotos nuevas desde cualquier dispositivo, después habrá que conectar una base de datos.</div>
+  <section class="card"><h2>Información principal</h2><div class="grid">
+    <div><label>Nombre</label><input id="businessName"></div><div><label>Tagline</label><input id="tagline"></div>
+    <div><label>Texto principal</label><input id="heroText1"></div><div><label>Texto secundario</label><input id="heroText2"></div>
+    <div><label>Teléfono</label><input id="phone"></div><div><label>WhatsApp (solo números)</label><input id="whatsapp"></div>
+    <div class="full"><label>Dirección</label><textarea id="address"></textarea></div>
+    <div class="full"><label>Enlace de Google Maps</label><input id="mapUrl"></div>
+    <div class="full"><label>Horario</label><textarea id="schedule"></textarea></div>
+  </div></section>
+  <section class="card"><h2>Redes sociales</h2><div class="grid"><div><label>Instagram</label><input id="instagram"></div><div><label>Facebook</label><input id="facebook"></div><div><label>TikTok</label><input id="tiktok"></div></div></section>
+  <section class="card"><h2>Servicios</h2><div id="services"></div><div class="row"><button class="btn secondary" id="addService">+ AGREGAR SERVICIO</button></div></section>
+  <section class="card"><h2>Galería</h2><p class="small">Las fotos reales que ya están en la página se conservan. Puedes cambiar sus títulos o quitar una foto. Para agregar archivos nuevos habrá que subirlos al sitio.</p><div id="gallery"></div></section>
+  <section class="card"><h2>Seguridad</h2><div class="grid"><div><label>Nueva contraseña (opcional)</label><input id="newPassword" type="password" placeholder="Dejar vacío para no cambiarla"></div></div></section>
+  <section class="card"><div class="row"><button class="btn" id="save">GUARDAR CAMBIOS</button><button class="btn secondary" id="reset">RESTABLECER DATOS</button><button class="btn secondary" id="export">EXPORTAR RESPALDO</button><label class="btn secondary" for="importFile">IMPORTAR RESPALDO</label><input id="importFile" class="hidden" type="file" accept="application/json"></div></section>
+</div>
+<script>
+const PASS_KEY='avrilAdminPassword';
+let data=avrilLoadData();
+const icons=['scissors','wax','straightener','hair-makeup','bleach','hair-treatment','perm'];
+function $(id){return document.getElementById(id)}
+function fill(){
+ ['businessName','tagline','heroText1','heroText2','phone','whatsapp','address','mapUrl','schedule','instagram','facebook','tiktok'].forEach(k=>$(k).value=data[k]||'');
+ renderServices(); renderGallery();
+}
+function renderServices(){ $('services').innerHTML=''; data.services.forEach((s,i)=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<div class="item-grid"><div><label>Icono</label><select data-k="icon" style="width:100%;padding:11px;background:#0d0b09;color:white;border:1px solid #60482c;border-radius:10px">${icons.map(x=>`<option ${x===s[0]?'selected':''}>${x}</option>`).join('')}</select></div><div><label>Nombre</label><input data-k="name" value="${esc(s[1])}"></div><div><label>Descripción</label><input data-k="desc" value="${esc(s[2])}"></div><div></div><button class="btn danger" data-remove>Quitar</button></div>`;d.querySelectorAll('[data-k]').forEach(el=>el.addEventListener('input',()=>{const k=el.dataset.k;s[i]=k==='icon'?el.value:k==='name'?s[1]=el.value:s[2]=el.value}));d.querySelector('[data-remove]').onclick=()=>{data.services.splice(i,1);renderServices()};$('services').appendChild(d)})}
+function renderGallery(){ $('gallery').innerHTML='';data.gallery.forEach((g,i)=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<div class="item-grid"><img class="thumb" src="${g[0]}" alt=""><div><label>Archivo</label><input value="${esc(g[0])}" disabled></div><div><label>Título</label><input data-title value="${esc(g[1])}"></div><div></div><button class="btn danger" data-remove>Quitar</button></div>`;d.querySelector('[data-title]').oninput=e=>g[1]=e.target.value;d.querySelector('[data-remove]').onclick=()=>{data.gallery.splice(i,1);renderGallery()};$('gallery').appendChild(d)})}
+function esc(x){return String(x||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function save(){const np=$("newPassword").value.trim();if(np)localStorage.setItem(PASS_KEY,np);['businessName','tagline','heroText1','heroText2','phone','whatsapp','address','mapUrl','schedule','instagram','facebook','tiktok'].forEach(k=>data[k]=$(k).value);avrilSaveData(data);alert('Cambios guardados. Abre la página para verlos.');}
+$('loginBtn').onclick=()=>{const p=$('password').value;const saved=localStorage.getItem(PASS_KEY)||'AVRIL2026';if(p===saved){sessionStorage.setItem('avrilAdminOk','1');$('login').classList.add('hidden');$('app').classList.remove('hidden');fill()}else alert('Contraseña incorrecta')};
+$('logout').onclick=()=>{sessionStorage.removeItem('avrilAdminOk');location.reload()};
+$('save').onclick=save;
+$('addService').onclick=()=>{data.services.push(['scissors','NUEVO SERVICIO','']);renderServices()};
+$('reset').onclick=()=>{if(confirm('¿Restablecer todos los datos a la versión inicial?')){avrilResetData();data=avrilLoadData();fill();}};
+$('export').onclick=()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='avril-respaldo.json';a.click();URL.revokeObjectURL(a.href)};
+$('importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{data=JSON.parse(r.result);fill();alert('Respaldo cargado. Pulsa GUARDAR CAMBIOS.')}catch{alert('El archivo no es válido.')}};r.readAsText(f)};
+if(sessionStorage.getItem('avrilAdminOk')==='1'){$('login').classList.add('hidden');$('app').classList.remove('hidden');fill()}
+</script></body></html>
